@@ -1,8 +1,5 @@
 .venv
 venv
-backend\app\models\__pycache__
-backend\app\__pycache__
-backend\app\schemas\__pycache__
-backend\app\services\__pycache__
-backend\app\utils\__pycache__
-backend\app\ws\__pycache__
+__pycache__/
+*.pyc
+.env
