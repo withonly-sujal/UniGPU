@@ -5,10 +5,11 @@ from functools import lru_cache
 
 class Settings(BaseSettings):
     # ── Database ──
-    # Default: SQLite for local dev. Set DATABASE_URL env var for PostgreSQL.
+    # Docker uses PostgreSQL. For local dev without Docker, use:
+    # sqlite+aiosqlite:///./unigpu.db
     DATABASE_URL: str = os.getenv(
         "DATABASE_URL",
-        "sqlite+aiosqlite:///./unigpu.db"
+        "postgresql+asyncpg://unigpu:unigpu_secret@localhost:5432/unigpu"
     )
 
     # ── Redis ──
