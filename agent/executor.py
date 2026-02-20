@@ -218,20 +218,32 @@ class JobExecutor:
         container = None
 
         try:
+            # Detect if NVIDIA runtime is available
+            runtime_opts = {}
+            try:
+                runtimes = client.info().get("Runtimes", {})
+                if "nvidia" in runtimes:
+                    runtime_opts["runtime"] = "nvidia"
+                    runtime_opts["environment"] = {"NVIDIA_VISIBLE_DEVICES": "all"}
+                    logger.info("Using NVIDIA runtime for job %s", job_id)
+                else:
+                    logger.warning("NVIDIA runtime not found — running without GPU access")
+            except Exception:
+                logger.warning("Could not detect runtimes — running without GPU access")
+
             container = client.containers.run(
                 image=image,
                 command=["bash", "-c", full_cmd],
                 name=f"unigpu-job-{job_id}",
                 detach=True,
-                runtime="nvidia",                         # NVIDIA GPU runtime
-                environment={"NVIDIA_VISIBLE_DEVICES": "all"},
+                **runtime_opts,
                 volumes={
                     str(input_dir.resolve()): {"bind": "/workspace/input", "mode": "ro"},
                     str(output_dir.resolve()): {"bind": "/workspace/output", "mode": "rw"},
                 },
                 working_dir="/workspace",
                 cpu_period=100000,
-                cpu_quota=int(self.cpu_limit * 100000),    # e.g. 4 cores
+                cpu_quota=int(self.cpu_limit * 100000),
                 mem_limit=self.memory_limit,
                 network_mode="bridge",
                 auto_remove=False,

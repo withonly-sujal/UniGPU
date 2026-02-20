@@ -13,6 +13,7 @@ from app.deps import get_current_user, require_role
 from app.config import get_settings
 from app.models.user import User
 from app.models.job import Job, JobStatus
+from app.models.gpu import GPU, GPUStatus
 from app.schemas.job import JobOut
 
 router = APIRouter()
@@ -54,6 +55,39 @@ async def submit_job(
     )
     db.add(job)
     await db.flush()
+
+    # Try to match with an available GPU and dispatch immediately
+    from app.services.matching import find_available_gpu
+    from app.services.connection_manager import manager
+    from pathlib import Path
+
+    gpu = await find_available_gpu(db, min_vram=0)
+    if gpu and manager.is_connected(gpu.id):
+        # Assign GPU to job
+        job.gpu_id = gpu.id
+        job.status = JobStatus.queued
+        gpu.status = GPUStatus.busy
+
+        # Build download URLs
+        script_name = Path(script_path).name
+        script_url = f"/jobs/{job_id}/download/{script_name}"
+        req_url = None
+        if req_path:
+            req_name = Path(req_path).name
+            req_url = f"/jobs/{job_id}/download/{req_name}"
+
+        await db.commit()
+
+        # Send assign_job via WebSocket
+        await manager.send_to_gpu(gpu.id, {
+            "type": "assign_job",
+            "job_id": job_id,
+            "script_url": script_url,
+            "requirements_url": req_url,
+        })
+    else:
+        await db.commit()
+
     return job
 
 
