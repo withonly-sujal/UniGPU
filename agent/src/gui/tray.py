@@ -271,18 +271,29 @@ class TrayApp:
         # 1. Stop the agent (WebSocket, heartbeat)
         self._stop_agent()
 
-        # 2. Remove the tray icon
+        # 2. Remove the tray icon — hide it first so Windows Shell
+        #    unregisters it from the notification area immediately,
+        #    then stop pystray's event loop.
         if self._icon:
+            try:
+                self._icon.visible = False
+            except Exception:
+                pass
             self._icon.stop()
 
-        # 3. Clean up tk root
+        # 3. Give Windows Shell time to fully remove the icon
+        #    before we kill the process (otherwise the ghost icon
+        #    stays in the tray until the user hovers over it).
+        time.sleep(0.5)
+
+        # 4. Clean up tk root
         if self._tk_root:
             try:
                 self._tk_root.destroy()
             except Exception:
                 pass
 
-        # 4. Force exit — daemon threads can keep the process alive
+        # 5. Force exit — daemon threads can keep the process alive
         logger.info("Goodbye!")
         os._exit(0)
 
