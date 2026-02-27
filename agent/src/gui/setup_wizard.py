@@ -47,9 +47,21 @@ class SetupWizard:
 
         self.root = tk.Tk()
         self.root.title("UniGPU Agent — Setup")
-        self.root.geometry("520x580")
-        self.root.resizable(False, False)
+        self.root.geometry("520x620")
+        self.root.minsize(480, 520)     # minimum usable size
+        self.root.resizable(True, True)
         self.root.configure(bg=BG)
+
+        # Center on screen
+        self.root.update_idletasks()
+        sw = self.root.winfo_screenwidth()
+        sh = self.root.winfo_screenheight()
+        x = (sw - 520) // 2
+        y = (sh - 620) // 2
+        self.root.geometry(f"520x620+{x}+{y}")
+
+        # Track labels that need dynamic wraplength on resize
+        self._dynamic_labels: list[tk.Label] = []
 
         # Try to set icon
         try:
@@ -76,6 +88,9 @@ class SetupWizard:
         self._build_done_page()
 
         self._show_page(0)
+
+        # Bind resize event so text labels reflow dynamically
+        self.root.bind("<Configure>", self._on_resize)
 
     def run(self) -> Optional[AgentConfig]:
         """Show the wizard. Returns AgentConfig or None."""
@@ -110,8 +125,10 @@ class SetupWizard:
             "You'll earn credits for every job your GPU completes!\n\n"
             "Let's get set up in a few quick steps."
         )
-        tk.Label(page, text=desc, font=("Segoe UI", 11), bg=BG, fg=FG_DIM,
-                 justify="center", wraplength=440).pack(pady=10)
+        desc_lbl = tk.Label(page, text=desc, font=("Segoe UI", 11), bg=BG, fg=FG_DIM,
+                 justify="center", wraplength=440)
+        desc_lbl.pack(pady=10)
+        self._dynamic_labels.append(desc_lbl)
 
         # Backend URL
         tk.Label(page, text="Backend Server URL", font=("Segoe UI", 10, "bold"),
@@ -176,6 +193,7 @@ class SetupWizard:
         self._gpu_detail_label = tk.Label(card, textvariable=self._gpu_label,
                                            font=("Consolas", 10), bg=BG_CARD, fg=FG,
                                            justify="left", anchor="w", wraplength=420)
+        self._dynamic_labels.append(self._gpu_detail_label)
         self._gpu_detail_label.pack(anchor="w", padx=15, pady=(0, 10))
 
         # Status
@@ -195,13 +213,15 @@ class SetupWizard:
         tk.Label(page, text="You're All Set!", font=("Segoe UI", 22, "bold"),
                  bg=BG, fg=FG).pack(pady=(0, 10))
 
-        tk.Label(page, text=(
+        done_lbl = tk.Label(page, text=(
             "Your GPU has been registered with UniGPU.\n\n"
             "The agent will now start and appear in your\n"
             "system tray. You can right-click the tray icon\n"
             "to access settings, view logs, or stop the agent."
         ), font=("Segoe UI", 11), bg=BG, fg=FG_DIM, justify="center",
-                 wraplength=420).pack(pady=15)
+                 wraplength=420)
+        done_lbl.pack(pady=15)
+        self._dynamic_labels.append(done_lbl)
 
         self._make_nav_btn(page, "Start Agent 🚀", self._on_finish).pack(pady=30)
 
@@ -324,6 +344,16 @@ class SetupWizard:
             self._status.set(f"Cannot connect to {base_url}")
         except Exception as e:
             self._status.set(f"Error: {e}")
+
+    def _on_resize(self, event=None):
+        """Recalculate wraplength for text labels when window is resized."""
+        if event and event.widget == self.root:
+            new_wrap = max(300, event.width - 100)  # 50px padding each side
+            for lbl in self._dynamic_labels:
+                try:
+                    lbl.configure(wraplength=new_wrap)
+                except Exception:
+                    pass
 
     def _on_finish(self):
         self.root.destroy()
