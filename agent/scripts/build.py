@@ -28,11 +28,18 @@ def clean():
     for d in [DIST_DIR, BUILD_DIR]:
         if d.exists():
             print(f"  Cleaning {d}...")
-            shutil.rmtree(d)
+            try:
+                shutil.rmtree(d)
+            except PermissionError:
+                print(f"  WARNING: Could not delete {d} (files may be locked).")
+                print(f"  Close any running UniGPU Agent instances and try again.")
 
     spec_file = AGENT_DIR / f"{APP_NAME}.spec"
     if spec_file.exists():
-        spec_file.unlink()
+        try:
+            spec_file.unlink()
+        except PermissionError:
+            pass
 
 
 def build():
@@ -86,6 +93,13 @@ def build():
         "--collect-submodules", "httpx",
         "--collect-submodules", "docker",
         "--collect-submodules", "pystray",
+        # Bundle tkinter (C extension + Tcl/Tk data) and SSL certs
+        "--hidden-import", "_tkinter",
+        "--hidden-import", "tkinter",
+        "--collect-binaries", "tkinter",
+        "--collect-all", "certifi",
+        # Custom hook to bundle Tcl/Tk data directories
+        "--additional-hooks-dir", str(SCRIPTS_DIR),
         # Add data files
         "--add-data", f"{AGENT_DIR / '.env.example'};.",
     ]
@@ -112,11 +126,59 @@ def build():
         if env_example.exists():
             shutil.copy2(env_example, dist_app / ".env.example")
 
+        # Bundle Tcl/Tk data (required for tkinter GUI in .exe)
+        _bundle_tcl_tk(dist_app)
+
         print(f"\n  Build SUCCESS")
         print(f"  Output: {dist_app}")
         print(f"  Run:    {dist_app / (APP_NAME + '.exe')}")
     else:
         print(f"\n  Build completed - check {DIST_DIR}")
+
+
+def _bundle_tcl_tk(dist_app: Path):
+    """Copy Tcl/Tk data directories and DLLs into the dist bundle."""
+    internal = dist_app / "_internal"
+    if not internal.exists():
+        internal = dist_app  # fallback: some PyInstaller versions use flat layout
+
+    py_dir = Path(sys.executable).parent
+    dlls_dir = py_dir / "DLLs"
+
+    try:
+        import tkinter
+        root = tkinter.Tk()
+        root.withdraw()
+        tcl_dir = Path(root.tk.eval('info library').replace('/', os.sep))
+        tk_dir = Path(root.tk.eval('set tk_library').replace('/', os.sep))
+        root.destroy()
+
+        # Copy Tcl/Tk data directories
+        for src, name in [(tcl_dir, "_tcl_data"), (tk_dir, "_tk_data")]:
+            dest = internal / name
+            if src.is_dir() and not dest.exists():
+                print(f"  Bundling {name}: {src}")
+                shutil.copytree(str(src), str(dest))
+
+        # Copy _tkinter.pyd and tcl/tk DLLs from Python's DLLs directory
+        for pattern in ["_tkinter*", "tcl*.dll", "tk*.dll", "zlib*.dll"]:
+            for f in dlls_dir.glob(pattern):
+                dest = internal / f.name
+                if not dest.exists():
+                    shutil.copy2(str(f), str(dest))
+                    print(f"  Bundled DLL: {f.name}")
+
+            # Also check Python root directory
+            for f in py_dir.glob(pattern):
+                if f.is_file():
+                    dest = internal / f.name
+                    if not dest.exists():
+                        shutil.copy2(str(f), str(dest))
+                        print(f"  Bundled DLL: {f.name}")
+
+    except Exception as e:
+        print(f"  WARNING: Could not bundle Tcl/Tk: {e}")
+        print(f"  The .exe may not be able to open GUI windows.")
 
 
 def main():

@@ -232,6 +232,7 @@ class SetupWizard:
                 f"{base_url}/auth/login",
                 json={"username": username, "password": password},
                 timeout=15,
+                verify=False,
             )
 
             if resp.status_code == 200:
@@ -292,6 +293,7 @@ class SetupWizard:
                 },
                 headers={"Authorization": f"Bearer {self._token}"},
                 timeout=15,
+                verify=False,
             )
 
             if resp.status_code in (200, 201):

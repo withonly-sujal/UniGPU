@@ -120,10 +120,23 @@ class TrayApp:
             menu=self._build_menu(),
         )
 
-        # Start agent in background on tray setup
-        self._icon.visible = True
-        self._start_agent()
-        self._icon.run(setup=lambda icon: None)
+        # Start agent and make icon visible inside setup callback
+        # (pystray on Windows requires this to be done AFTER run() starts)
+        def _on_setup(icon):
+            icon.visible = True
+            self._start_agent()
+
+            # Show a notification so the user knows the agent is running
+            try:
+                icon.notify(
+                    "UniGPU Agent is running in the system tray.\n"
+                    "Right-click the tray icon for options.",
+                    title="UniGPU Agent Started",
+                )
+            except Exception:
+                pass  # Some pystray backends don't support notify
+
+        self._icon.run(setup=_on_setup)
 
     def update_status(self, status: str, job_id: Optional[str] = None):
         """Update the tray icon color and tooltip."""
@@ -203,7 +216,15 @@ class TrayApp:
         self.update_status("disconnected")
 
         if self._agent_loop and self._agent:
-            asyncio.run_coroutine_threadsafe(self._agent.stop(), self._agent_loop)
+            # Schedule stop and wait briefly for graceful shutdown
+            future = asyncio.run_coroutine_threadsafe(self._agent.stop(), self._agent_loop)
+            try:
+                future.result(timeout=3)  # Wait up to 3 seconds
+            except Exception:
+                pass
+
+            # Stop the event loop
+            self._agent_loop.call_soon_threadsafe(self._agent_loop.stop)
 
     # ──────────────────────────────────────────────
     # Menu handlers
@@ -242,12 +263,26 @@ class TrayApp:
         self._stop_agent()
 
     def _on_exit(self, icon=None, item=None):
+        """Full cleanup and exit."""
+        import os
+
+        logger.info("Exit requested — shutting down")
+
+        # 1. Stop the agent (WebSocket, heartbeat)
         self._stop_agent()
+
+        # 2. Remove the tray icon
         if self._icon:
             self._icon.stop()
-        # Clean up tk root if it exists
+
+        # 3. Clean up tk root
         if self._tk_root:
             try:
                 self._tk_root.destroy()
             except Exception:
                 pass
+
+        # 4. Force exit — daemon threads can keep the process alive
+        logger.info("Goodbye!")
+        os._exit(0)
+
