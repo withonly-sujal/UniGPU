@@ -167,3 +167,69 @@ async def download_job_file(job_id: str, filename: str):
         filename=safe_name,
         media_type="application/octet-stream",
     )
+
+
+@router.post("/{job_id}/cancel", response_model=JobOut)
+async def cancel_job(
+    job_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Cancel a pending, queued, or running job."""
+    result = await db.execute(select(Job).where(Job.id == job_id))
+    job = result.scalar_one_or_none()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    if current_user.role.value != "admin" and job.client_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    if job.status.value in ("completed", "failed", "cancelled"):
+        raise HTTPException(status_code=400, detail=f"Job already {job.status.value}")
+
+    # If the job is running on a GPU, tell the agent to stop it
+    if job.gpu_id and job.status in (JobStatus.running, JobStatus.queued):
+        from app.services.connection_manager import manager
+
+        if manager.is_connected(job.gpu_id):
+            await manager.send_to_gpu(job.gpu_id, {
+                "type": "cancel_job",
+                "job_id": job.id,
+            })
+
+        # Free up the GPU
+        gpu_result = await db.execute(select(GPU).where(GPU.id == job.gpu_id))
+        gpu = gpu_result.scalar_one_or_none()
+        if gpu and gpu.status == GPUStatus.busy:
+            gpu.status = GPUStatus.online
+
+    job.status = JobStatus.cancelled
+    job.completed_at = __import__("datetime").datetime.now(__import__("datetime").timezone.utc)
+    await db.commit()
+    return job
+
+
+@router.delete("/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_job(
+    job_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Delete a completed, failed, or cancelled job."""
+    result = await db.execute(select(Job).where(Job.id == job_id))
+    job = result.scalar_one_or_none()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    if current_user.role.value != "admin" and job.client_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    if job.status.value in ("queued", "running"):
+        raise HTTPException(status_code=400, detail="Stop the job before deleting it")
+
+    # Clean up uploaded files
+    import shutil
+    job_dir = os.path.join(settings.UPLOAD_DIR, job_id)
+    if os.path.isdir(job_dir):
+        shutil.rmtree(job_dir, ignore_errors=True)
+
+    await db.delete(job)
+    await db.commit()

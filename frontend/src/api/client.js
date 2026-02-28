@@ -24,6 +24,10 @@ async function request(method, path, { body, files } = {}) {
     }
 
     const res = await fetch(`${BASE}${path}`, opts);
+
+    // Handle 204 No Content (e.g. DELETE responses)
+    if (res.status === 204) return null;
+
     const data = res.headers.get('content-type')?.includes('json')
         ? await res.json()
         : await res.text();
@@ -73,6 +77,8 @@ const api = {
     listJobs: () => request('GET', '/jobs/'),
     getJob: (id) => request('GET', `/jobs/${id}`),
     getJobLogs: (id) => request('GET', `/jobs/${id}/logs`),
+    cancelJob: (id) => request('POST', `/jobs/${id}/cancel`),
+    deleteJob: (id) => request('DELETE', `/jobs/${id}`),
 
     // Wallet
     getWallet: () => request('GET', '/wallet/'),

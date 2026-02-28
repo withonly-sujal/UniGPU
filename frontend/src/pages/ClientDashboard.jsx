@@ -246,9 +246,52 @@ export default function ClientDashboard() {
                                         <td>{statusBadge(j.status)}</td>
                                         <td>{new Date(j.created_at).toLocaleString()}</td>
                                         <td>
-                                            <button className="btn btn-ghost btn-small" onClick={() => viewLogs(j.id)}>
-                                                View Logs
-                                            </button>
+                                            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                                                <button className="btn btn-ghost btn-small" onClick={() => viewLogs(j.id)}>
+                                                    📋 Logs
+                                                </button>
+                                                {j.status === 'pending' && (
+                                                    <>
+                                                        <button className="btn btn-ghost btn-small" style={{ color: 'var(--red)' }}
+                                                            onClick={async () => {
+                                                                if (!confirm('Delete this job permanently?')) return;
+                                                                try { await api.deleteJob(j.id); await load(); }
+                                                                catch (e) { alert(e.detail || 'Failed to delete job'); }
+                                                            }}>
+                                                            🗑 Delete
+                                                        </button>
+                                                    </>
+                                                )}
+                                                {['queued', 'running'].includes(j.status) && (
+                                                    <>
+                                                        <button className="btn btn-danger btn-small" onClick={async () => {
+                                                            if (!confirm('Are you sure you want to stop this job?')) return;
+                                                            try { await api.cancelJob(j.id); await load(); }
+                                                            catch (e) { alert(e.detail || 'Failed to stop job'); }
+                                                        }}>
+                                                            ⛔ Stop
+                                                        </button>
+                                                        <button className="btn btn-ghost btn-small" style={{ color: 'var(--red)' }}
+                                                            onClick={async () => {
+                                                                if (!confirm('Delete this job permanently?')) return;
+                                                                try { await api.cancelJob(j.id); await api.deleteJob(j.id); await load(); }
+                                                                catch (e) { alert(e.detail || 'Failed to delete job'); }
+                                                            }}>
+                                                            🗑 Delete
+                                                        </button>
+                                                    </>
+                                                )}
+                                                {['completed', 'failed', 'cancelled'].includes(j.status) && (
+                                                    <button className="btn btn-ghost btn-small" style={{ color: 'var(--red)' }}
+                                                        onClick={async () => {
+                                                            if (!confirm('Delete this job permanently?')) return;
+                                                            try { await api.deleteJob(j.id); await load(); }
+                                                            catch (e) { alert(e.detail || 'Failed to delete job'); }
+                                                        }}>
+                                                        🗑 Delete
+                                                    </button>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
