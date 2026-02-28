@@ -35,6 +35,7 @@ async def _save_upload(file: UploadFile, job_id: str, filename: str) -> str:
 async def submit_job(
     script: UploadFile = File(...),
     requirements: UploadFile | None = File(None),
+    gpu_id: str | None = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role("client", "admin")),
 ):
@@ -56,12 +57,24 @@ async def submit_job(
     db.add(job)
     await db.flush()
 
-    # Try to match with an available GPU and dispatch immediately
+    # Try to match with a GPU and dispatch
     from app.services.matching import find_available_gpu
     from app.services.connection_manager import manager
     from pathlib import Path
 
-    gpu = await find_available_gpu(db, min_vram=0)
+    gpu = None
+    if gpu_id:
+        # Client selected a specific GPU
+        result = await db.execute(
+            select(GPU).where(GPU.id == gpu_id, GPU.status == GPUStatus.online)
+        )
+        gpu = result.scalar_one_or_none()
+        if not gpu:
+            # Requested GPU isn't available — fall back to auto-match
+            gpu = await find_available_gpu(db, min_vram=0)
+    else:
+        gpu = await find_available_gpu(db, min_vram=0)
+
     if gpu and manager.is_connected(gpu.id):
         # Assign GPU to job
         job.gpu_id = gpu.id

@@ -6,6 +6,8 @@ export default function ClientDashboard() {
     const [jobs, setJobs] = useState([]);
     const [wallet, setWallet] = useState(null);
     const [transactions, setTransactions] = useState([]);
+    const [availableGPUs, setAvailableGPUs] = useState([]);
+    const [selectedGPU, setSelectedGPU] = useState('');
     const [topupAmt, setTopupAmt] = useState('');
     const [script, setScript] = useState(null);
     const [reqs, setReqs] = useState(null);
@@ -17,22 +19,26 @@ export default function ClientDashboard() {
 
     const load = async () => {
         try {
-            const [j, w, t] = await Promise.all([api.listJobs(), api.getWallet(), api.getTransactions()]);
+            const [j, w, t, g] = await Promise.all([
+                api.listJobs(), api.getWallet(), api.getTransactions(), api.availableGPUs(0)
+            ]);
             setJobs(j);
             setWallet(w);
             setTransactions(t);
+            setAvailableGPUs(g);
         } catch (e) { console.error(e); }
     };
 
-    useEffect(() => { load(); }, []);
+    useEffect(() => { load(); const iv = setInterval(load, 15000); return () => clearInterval(iv); }, []);
 
     const handleSubmit = async () => {
         if (!script) return;
         setSubmitting(true);
         try {
-            await api.submitJob(script, reqs || undefined);
+            await api.submitJob(script, reqs || undefined, selectedGPU || undefined);
             setScript(null);
             setReqs(null);
+            setSelectedGPU('');
             if (fileRef.current) fileRef.current.value = '';
             if (reqRef.current) reqRef.current.value = '';
             await load();
@@ -84,9 +90,52 @@ export default function ClientDashboard() {
                         <span className="stat-value amber">{jobs.filter(j => j.status === 'running').length}</span>
                     </div>
                     <div className="glass stat-card">
-                        <span className="stat-label">Completed</span>
-                        <span className="stat-value purple">{jobs.filter(j => j.status === 'completed').length}</span>
+                        <span className="stat-label">GPUs Online</span>
+                        <span className="stat-value green">{availableGPUs.length}</span>
                     </div>
+                </div>
+
+                {/* Available GPUs */}
+                <div className="section animate-in" style={{ marginTop: '12px' }}>
+                    <div className="section-title">Available GPUs</div>
+                    {availableGPUs.length === 0 ? (
+                        <div className="glass" style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                            No GPUs online right now. Jobs will be queued until a GPU becomes available.
+                        </div>
+                    ) : (
+                        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                            {availableGPUs.map(gpu => (
+                                <div key={gpu.id} className="glass" style={{
+                                    padding: '16px 20px', flex: '1 1 220px', maxWidth: '320px',
+                                    border: selectedGPU === gpu.id ? '2px solid var(--primary)' : '2px solid transparent',
+                                    cursor: 'pointer', transition: 'border 0.2s',
+                                }} onClick={() => setSelectedGPU(selectedGPU === gpu.id ? '' : gpu.id)}>
+                                    <div style={{ fontWeight: 700, fontSize: '0.95rem', marginBottom: '4px' }}>
+                                        {gpu.name}
+                                    </div>
+                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                                        {gpu.vram_mb} MB VRAM · CUDA {gpu.cuda_version || 'N/A'}
+                                    </div>
+                                    <div style={{ marginTop: '6px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                        {statusBadge(gpu.status)}
+                                        {selectedGPU === gpu.id && (
+                                            <span style={{ fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 600 }}>
+                                                ✓ Selected
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                    {selectedGPU && (
+                        <div style={{ marginTop: '8px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                            Selected GPU: <strong>{availableGPUs.find(g => g.id === selectedGPU)?.name}</strong>
+                            {' · '}
+                            <span style={{ color: 'var(--primary)', cursor: 'pointer' }}
+                                onClick={() => setSelectedGPU('')}>Clear selection</span>
+                        </div>
+                    )}
                 </div>
 
                 <div className="grid-2">
@@ -112,9 +161,22 @@ export default function ClientDashboard() {
                                         onChange={e => setReqs(e.target.files[0])} />
                                 </div>
                             </div>
+                            <div className="form-group" style={{ marginBottom: '14px' }}>
+                                <label>Target GPU</label>
+                                <select className="input" value={selectedGPU}
+                                    onChange={e => setSelectedGPU(e.target.value)}
+                                    style={{ cursor: 'pointer' }}>
+                                    <option value="">Auto-assign (best available)</option>
+                                    {availableGPUs.map(gpu => (
+                                        <option key={gpu.id} value={gpu.id}>
+                                            {gpu.name} — {gpu.vram_mb} MB VRAM
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
                             <button className="btn btn-primary" onClick={handleSubmit}
                                 disabled={!script || submitting} style={{ width: '100%' }}>
-                                {submitting ? 'Submitting...' : 'Submit Job'}
+                                {submitting ? 'Submitting...' : selectedGPU ? 'Submit to Selected GPU' : 'Submit Job'}
                             </button>
                         </div>
                     </div>

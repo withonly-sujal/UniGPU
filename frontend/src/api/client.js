@@ -46,9 +46,28 @@ const api = {
     updateGPU: (id, d) => request('PATCH', `/gpus/${id}/status`, { body: d }),
 
     // Jobs
-    submitJob: (script, requirements) => {
+    submitJob: (script, requirements, gpuId) => {
         const files = { script };
         if (requirements) files.requirements = requirements;
+        // gpu_id is sent as a form field alongside the files
+        const opts = { files };
+        if (gpuId) {
+            // We need to add gpu_id to the FormData manually
+            return (async () => {
+                const fd = new FormData();
+                fd.append('script', script);
+                if (requirements) fd.append('requirements', requirements);
+                fd.append('gpu_id', gpuId);
+                const res = await fetch(`${BASE}/jobs/submit`, {
+                    method: 'POST',
+                    headers: { ...authHeaders() },
+                    body: fd,
+                });
+                const data = await res.json();
+                if (!res.ok) throw { status: res.status, detail: data?.detail || data };
+                return data;
+            })();
+        }
         return request('POST', '/jobs/submit', { files });
     },
     listJobs: () => request('GET', '/jobs/'),
