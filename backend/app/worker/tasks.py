@@ -13,13 +13,18 @@ from app.models.user import User  # noqa: F401
 from app.models.wallet import Wallet, Transaction  # noqa: F401
 from app.models.gpu import GPU, GPUStatus
 from app.models.job import Job, JobStatus
-from app.services.connection_manager import manager
 
 settings = get_settings()
 
-# Worker needs its own async engine (runs in a separate process)
-_engine = create_async_engine(settings.DATABASE_URL, echo=False)
-_async_session = async_sessionmaker(_engine, class_=AsyncSession, expire_on_commit=False)
+
+def _get_async_session():
+    """Create a fresh engine + session for each task invocation.
+    This avoids 'Future attached to a different loop' and
+    'another operation is in progress' errors in Celery workers.
+    """
+    engine = create_async_engine(settings.DATABASE_URL, echo=False)
+    session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
+    return engine, session_factory
 
 
 def _run_async(coro):
@@ -38,44 +43,49 @@ def process_job(job_id: str):
 
 
 async def _process_job_async(job_id: str):
-    async with _async_session() as db:
-        result = await db.execute(select(Job).where(Job.id == job_id))
-        job = result.scalar_one_or_none()
-        if not job or job.status != JobStatus.pending:
-            return
+    engine, session_factory = _get_async_session()
+    try:
+        async with session_factory() as db:
+            result = await db.execute(select(Job).where(Job.id == job_id))
+            job = result.scalar_one_or_none()
+            if not job or job.status != JobStatus.pending:
+                return
 
-        # Find an available GPU
-        from app.services.matching import find_available_gpu  # avoid circular import
-        gpu = await find_available_gpu(db, min_vram=0)
+            # Find an available GPU
+            from app.services.matching import find_available_gpu  # avoid circular import
+            gpu = await find_available_gpu(db, min_vram=0)
 
-        if not gpu:
-            # No GPU available — mark as queued; will be retried
+            if not gpu:
+                # No GPU available — mark as queued; will be retried
+                job.status = JobStatus.queued
+                await db.commit()
+                return
+
+            # Assign GPU to job
+            job.gpu_id = gpu.id
             job.status = JobStatus.queued
+            gpu.status = GPUStatus.busy
             await db.commit()
-            return
 
-        # Assign GPU to job
-        job.gpu_id = gpu.id
-        job.status = JobStatus.queued
-        gpu.status = GPUStatus.busy
-        await db.commit()
+            # Dispatch to agent via WebSocket
+            from app.services.connection_manager import manager
+            if manager.is_connected(gpu.id):
+                # Build download URLs for the agent
+                script_name = Path(job.script_path).name
+                script_url = f"/jobs/{job.id}/download/{script_name}"
+                req_url = None
+                if job.requirements_path:
+                    req_name = Path(job.requirements_path).name
+                    req_url = f"/jobs/{job.id}/download/{req_name}"
 
-        # Dispatch to agent via WebSocket
-        if manager.is_connected(gpu.id):
-            # Build download URLs for the agent
-            script_name = Path(job.script_path).name
-            script_url = f"/jobs/{job.id}/download/{script_name}"
-            req_url = None
-            if job.requirements_path:
-                req_name = Path(job.requirements_path).name
-                req_url = f"/jobs/{job.id}/download/{req_name}"
-
-            await manager.send_to_gpu(gpu.id, {
-                "type": "assign_job",
-                "job_id": job.id,
-                "script_url": script_url,
-                "requirements_url": req_url,
-            })
+                await manager.send_to_gpu(gpu.id, {
+                    "type": "assign_job",
+                    "job_id": job.id,
+                    "script_url": script_url,
+                    "requirements_url": req_url,
+                })
+    finally:
+        await engine.dispose()
 
 
 @celery_app.task(name="app.worker.tasks.check_heartbeats")
@@ -85,18 +95,22 @@ def check_heartbeats():
 
 
 async def _check_heartbeats_async():
-    cutoff = datetime.now(timezone.utc) - timedelta(seconds=settings.HEARTBEAT_TIMEOUT_SECONDS)
-    async with _async_session() as db:
-        result = await db.execute(
-            select(GPU).where(
-                GPU.status != GPUStatus.offline,
-                GPU.last_heartbeat.isnot(None),
-                GPU.last_heartbeat < cutoff,
+    engine, session_factory = _get_async_session()
+    try:
+        cutoff = datetime.now(timezone.utc) - timedelta(seconds=settings.HEARTBEAT_TIMEOUT_SECONDS)
+        async with session_factory() as db:
+            result = await db.execute(
+                select(GPU).where(
+                    GPU.status != GPUStatus.offline,
+                    GPU.last_heartbeat.isnot(None),
+                    GPU.last_heartbeat < cutoff,
+                )
             )
-        )
-        stale_gpus = result.scalars().all()
-        for gpu in stale_gpus:
-            gpu.status = GPUStatus.offline
-            print(f"GPU {gpu.id} ({gpu.name}) marked offline -- stale heartbeat")
-        if stale_gpus:
-            await db.commit()
+            stale_gpus = result.scalars().all()
+            for gpu in stale_gpus:
+                gpu.status = GPUStatus.offline
+                print(f"GPU {gpu.id} ({gpu.name}) marked offline -- stale heartbeat")
+            if stale_gpus:
+                await db.commit()
+    finally:
+        await engine.dispose()

@@ -3,4 +3,4 @@ venv
 __pycache__/
 *.pyc
 .env
-backend\celerybeat-schedule
+celerybeat-schedule
