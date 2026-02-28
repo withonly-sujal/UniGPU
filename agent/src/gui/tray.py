@@ -147,6 +147,7 @@ class TrayApp:
             color = STATUS_COLORS.get(status, "#6366f1")
             self._icon.icon = _create_icon_image(color)
             self._icon.title = f"UniGPU Agent — {self.status_text}"
+            self._icon.menu = self._build_menu()
 
     # ──────────────────────────────────────────────
     # Menu
@@ -223,8 +224,24 @@ class TrayApp:
             except Exception:
                 pass
 
+            # Cancel all remaining async tasks (reconnect sleeps, heartbeat, etc.)
+            def _cancel_all():
+                for task in asyncio.all_tasks(self._agent_loop):
+                    task.cancel()
+            try:
+                self._agent_loop.call_soon_threadsafe(_cancel_all)
+            except RuntimeError:
+                pass
+
             # Stop the event loop
-            self._agent_loop.call_soon_threadsafe(self._agent_loop.stop)
+            try:
+                self._agent_loop.call_soon_threadsafe(self._agent_loop.stop)
+            except RuntimeError:
+                pass
+
+        # Wait for agent thread to actually finish
+        if self._agent_thread and self._agent_thread.is_alive():
+            self._agent_thread.join(timeout=5)
 
     # ──────────────────────────────────────────────
     # Menu handlers
@@ -267,6 +284,12 @@ class TrayApp:
         import os
 
         logger.info("Exit requested — shutting down")
+
+        # 0. Hard-kill timer — guarantees process dies even if cleanup hangs
+        def _force_kill():
+            time.sleep(8)
+            os._exit(1)
+        threading.Thread(target=_force_kill, daemon=True).start()
 
         # 1. Stop the agent (WebSocket, heartbeat)
         self._stop_agent()

@@ -34,7 +34,8 @@ class SettingsWindow:
         self.win = tk.Toplevel()
         self.win.title("UniGPU Agent — Settings")
         self.win.geometry("500x560")
-        self.win.resizable(False, False)
+        self.win.resizable(True, True)
+        self.win.minsize(400, 480)
         self.win.configure(bg=BG)
         self.win.grab_set()
 
@@ -63,14 +64,42 @@ class SettingsWindow:
         self._build_ui()
 
     def _build_ui(self):
-        # Title
+        # Title (fixed at top)
         tk.Label(self.win, text="⚙️  Agent Settings", font=("Segoe UI", 16, "bold"),
                  bg=BG, fg=FG).pack(pady=(15, 10))
 
-        # Scrollable content
-        container = tk.Frame(self.win, bg=BG)
-        container.pack(fill="both", expand=True, padx=25, pady=(0, 5))
+        # ── Scrollable content area ──────────────────
+        scroll_wrapper = tk.Frame(self.win, bg=BG)
+        scroll_wrapper.pack(fill="both", expand=True, padx=25, pady=(0, 5))
 
+        canvas = tk.Canvas(scroll_wrapper, bg=BG, highlightthickness=0)
+        scrollbar = tk.Scrollbar(scroll_wrapper, orient="vertical", command=canvas.yview)
+        container = tk.Frame(canvas, bg=BG)
+
+        container.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all")),
+        )
+
+        canvas_window = canvas.create_window((0, 0), window=container, anchor="nw")
+
+        # Make the inner frame stretch to canvas width
+        def _on_canvas_configure(event):
+            canvas.itemconfig(canvas_window, width=event.width)
+        canvas.bind("<Configure>", _on_canvas_configure)
+
+        canvas.configure(yscrollcommand=scrollbar.set)
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+
+        # Mousewheel scrolling
+        def _on_mousewheel(event):
+            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+        canvas.bind_all("<MouseWheel>", _on_mousewheel)
+        self.win.protocol("WM_DELETE_WINDOW", lambda: (canvas.unbind_all("<MouseWheel>"), self.win.destroy()))
+
+        # ── Fields ───────────────────────────────────
         fields = [
             ("GPU ID", "gpu_id", True),
             ("Backend HTTP URL", "backend_http_url", False),
@@ -99,7 +128,7 @@ class SettingsWindow:
         tk.Label(container, text=f"Config: {AgentConfig.config_file_path()}",
                  font=("Segoe UI", 8), bg=BG, fg=FG_DIM, anchor="w").pack(fill="x", pady=(12, 0))
 
-        # Buttons
+        # ── Buttons (fixed at bottom) ────────────────
         btn_frame = tk.Frame(self.win, bg=BG)
         btn_frame.pack(pady=15)
 
