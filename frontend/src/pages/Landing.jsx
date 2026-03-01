@@ -1,5 +1,9 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faRocket } from '@fortawesome/free-solid-svg-icons';
+import { faServer } from '@fortawesome/free-solid-svg-icons';
+import { faLock } from '@fortawesome/free-solid-svg-icons';
 
 export default function Landing() {
     const { user } = useAuth();
@@ -37,24 +41,25 @@ export default function Landing() {
 
             <section className="features">
                 <div className="feature-card glass animate-in">
-                    <div className="feature-icon">🚀</div>
+                    <div className="feature-icon"><FontAwesomeIcon icon={faRocket} /></div>
                     <h3>Submit Jobs</h3>
                     <p>Upload your training script and requirements. We find the best GPU and run it for you.</p>
                 </div>
                 <div className="feature-card glass animate-in" style={{ animationDelay: '0.1s' }}>
-                    <div className="feature-icon">⚡</div>
+                    <div className="feature-icon"><FontAwesomeIcon icon={faServer} /></div>
                     <h3>Share Your GPU</h3>
                     <p>Install the lightweight agent on your machine. Earn credits while your GPU is idle.</p>
                 </div>
                 <div className="feature-card glass animate-in" style={{ animationDelay: '0.2s' }}>
-                    <div className="feature-icon">🔒</div>
+                    <div className="feature-icon"><FontAwesomeIcon icon={faLock} /></div>
                     <h3>Secure & Isolated</h3>
                     <p>Every job runs inside a Docker container with resource limits. Your machine stays safe.</p>
                 </div>
             </section>
 
             <footer style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-                UniGPU — Peer-to-Peer GPU Marketplace · Built for Students
+                UniGPU - Peer-to-Peer GPU Marketplace - Built for Students - By Students <br />
+                © 2026 UniGPU. All rights reserved.
             </footer>
         </div>
     );

@@ -1,15 +1,17 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faWindowMaximize } from '@fortawesome/free-solid-svg-icons';
 
 const NAV = {
     client: [
-        { to: '/dashboard/client', icon: '📊', label: 'Dashboard' },
+        { to: '/dashboard/client', icon: <FontAwesomeIcon icon={faWindowMaximize} />, label: 'Dashboard' },
     ],
     provider: [
-        { to: '/dashboard/provider', icon: '📊', label: 'Dashboard' },
+        { to: '/dashboard/provider', icon: <FontAwesomeIcon icon={faWindowMaximize} />, label: 'Dashboard' },
     ],
     admin: [
-        { to: '/dashboard/admin', icon: '📊', label: 'Dashboard' },
+        { to: '/dashboard/admin', icon: <FontAwesomeIcon icon={faWindowMaximize} />, label: 'Dashboard' },
     ],
 };
 

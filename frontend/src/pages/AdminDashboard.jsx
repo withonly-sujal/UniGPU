@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
 import api from '../api/client';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faChartArea } from '@fortawesome/free-solid-svg-icons';
+import { faServer } from '@fortawesome/free-solid-svg-icons';
+import { faClipboardList } from '@fortawesome/free-solid-svg-icons';
+import { faUsers } from '@fortawesome/free-solid-svg-icons';
 
 export default function AdminDashboard() {
     const [stats, setStats] = useState(null);
@@ -26,10 +31,10 @@ export default function AdminDashboard() {
     const statusBadge = (s) => <span className={`badge badge-${s}`}>{s}</span>;
 
     const tabs = [
-        { key: 'overview', label: 'Overview', icon: '📊' },
-        { key: 'gpus', label: 'GPU Fleet', icon: '🖥️' },
-        { key: 'jobs', label: 'Jobs', icon: '⚡' },
-        { key: 'users', label: 'Users', icon: '👥' },
+        { key: 'overview', label: 'Overview', icon: <FontAwesomeIcon icon={faChartArea} /> },
+        { key: 'gpus', label: 'GPU Fleet', icon: <FontAwesomeIcon icon={faServer} /> },
+        { key: 'jobs', label: 'Jobs', icon: <FontAwesomeIcon icon={faClipboardList} /> },
+        { key: 'users', label: 'Users', icon: <FontAwesomeIcon icon={faUsers} /> },
     ];
 
     return (
