@@ -17,6 +17,7 @@ export default function ProviderDashboard() {
     const [metrics, setMetrics] = useState({});      // gpu_id → latest metrics
     const [agentLogs, setAgentLogs] = useState([]);   // array of log lines
     const [wsConnected, setWsConnected] = useState(false);
+    const [agentConnecting, setAgentConnecting] = useState(false); // shows progress bar
 
     const logEndRef = useRef(null);
     const wsRef = useRef(null);
@@ -55,6 +56,7 @@ export default function ProviderDashboard() {
 
                     if (msg.type === 'metrics') {
                         setMetrics(prev => ({ ...prev, [msg.gpu_id]: msg.data }));
+                        setAgentConnecting(false); // Agent is back — hide progress bar
                     } else if (msg.type === 'agent_log') {
                         setAgentLogs(prev => {
                             const next = [...prev, { time: new Date().toLocaleTimeString(), text: msg.data, gpu_id: msg.gpu_id }];
@@ -123,9 +125,18 @@ export default function ProviderDashboard() {
     const toggleStatus = async (gpu) => {
         const newStatus = gpu.status === 'online' ? 'offline' : 'online';
         try {
+            if (newStatus === 'online') {
+                setAgentConnecting(true); // Show progress bar
+            } else {
+                setAgentConnecting(false);
+                setMetrics(prev => { const next = { ...prev }; delete next[gpu.id]; return next; });
+            }
             await api.updateGPU(gpu.id, { status: newStatus });
             await load();
-        } catch (e) { alert(e.detail || 'Update failed'); }
+        } catch (e) {
+            setAgentConnecting(false);
+            alert(e.detail || 'Update failed');
+        }
     };
 
     const statusBadge = (s) => <span className={`badge badge-${s}`}>{s}</span>;
@@ -162,6 +173,19 @@ export default function ProviderDashboard() {
                         <span className="stat-value green">${wallet?.balance?.toFixed(2) || '0.00'}</span>
                     </div>
                 </div>
+
+                {/* Connecting Progress Bar */}
+                {agentConnecting && (
+                    <div className="connecting-bar-wrapper animate-in">
+                        <div className="connecting-bar-content">
+                            <div className="connecting-spinner" />
+                            <span>Connecting to agent…</span>
+                        </div>
+                        <div className="connecting-progress">
+                            <div className="connecting-progress-fill" />
+                        </div>
+                    </div>
+                )}
 
                 {/* Live System Metrics */}
                 <div className="section animate-in">
