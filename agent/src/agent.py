@@ -117,9 +117,10 @@ class UniGPUAgent:
             batch_interval=self.config.log_batch_interval,
         )
 
-        # 4. Register message handlers (backend sends "assign_job" / "cancel_job")
+        # 4. Register message handlers (backend sends "assign_job" / "cancel_job" / "control")
         self.ws.on("assign_job", self._handle_assign_job)
         self.ws.on("cancel_job", self._handle_cancel_job)
+        self.ws.on("control", self._handle_control)
 
         # 5. Setup signal handlers for graceful shutdown
         self._setup_signals()
@@ -152,6 +153,15 @@ class UniGPUAgent:
     # ──────────────────────────────────────────────
     # Message Handlers
     # ──────────────────────────────────────────────
+
+    async def _handle_control(self, msg: Dict[str, Any]) -> None:
+        """Handle control commands from the dashboard (stop)."""
+        action = msg.get("action")
+        if action == "stop":
+            logger.info("⏹️  Stop command received from dashboard")
+            await self.stop()
+        else:
+            logger.warning("Unknown control action: %s", action)
 
     async def _handle_cancel_job(self, msg: Dict[str, Any]) -> None:
         """Handle a cancel_job message from the backend — kill the running container."""
@@ -312,15 +322,43 @@ class UniGPUAgent:
 # ──────────────────────────────────────────────────
 
 def _run_headless():
-    """Original CLI mode — no GUI, just run the agent."""
-    config = AgentConfig.load()
-    agent = UniGPUAgent(config)
+    """CLI mode — runs the agent with auto-restart when dashboard triggers 'Go Online'."""
+    import time
+    import httpx
 
-    try:
-        asyncio.run(agent.start())
-    except KeyboardInterrupt:
-        logger.info("Interrupted — shutting down.")
-        asyncio.run(agent.stop())
+    config = AgentConfig.load()
+
+    while True:
+        agent = UniGPUAgent(config)
+        try:
+            asyncio.run(agent.start())
+        except KeyboardInterrupt:
+            logger.info("Interrupted — shutting down.")
+            break
+
+        # Agent stopped (e.g. from dashboard "Go Offline")
+        # Poll backend until GPU status is set back to "online" via dashboard
+        logger.info("Agent stopped — waiting for 'Go Online' from dashboard…")
+        try:
+            while True:
+                time.sleep(5)
+                try:
+                    resp = httpx.get(
+                        f"{config.backend_http_url}/gpus/",
+                        timeout=5,
+                    )
+                    if resp.status_code == 200:
+                        for gpu in resp.json():
+                            if gpu.get("id") == config.gpu_id and gpu.get("status") == "online":
+                                logger.info("GPU marked online — restarting agent")
+                                raise StopIteration  # break out of both loops
+                except StopIteration:
+                    break
+                except Exception as e:
+                    logger.debug("Polling backend: %s", e)
+        except KeyboardInterrupt:
+            logger.info("Interrupted — exiting.")
+            break
 
 
 def _run_gui():

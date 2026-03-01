@@ -8,6 +8,7 @@ from app.deps import get_current_user, require_role
 from app.models.user import User
 from app.models.gpu import GPU, GPUStatus
 from app.schemas.gpu import GPUCreate, GPUOut, GPUStatusUpdate
+from app.services.connection_manager import manager
 
 router = APIRouter()
 
@@ -64,4 +65,9 @@ async def update_gpu_status(
         raise HTTPException(status_code=403, detail="Not your GPU")
     gpu.status = data.status
     await db.flush()
+
+    # Send stop command to agent via WebSocket when going offline
+    if data.status == "offline" and manager.is_connected(gpu_id):
+        await manager.send_to_gpu(gpu_id, {"type": "control", "action": "stop"})
+
     return gpu

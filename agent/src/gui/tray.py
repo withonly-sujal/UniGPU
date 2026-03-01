@@ -100,6 +100,7 @@ class TrayApp:
 
         # Hidden root for tkinter dialogs (settings, etc.)
         self._tk_root = None
+        self._exiting = False  # True when manually stopped from tray (prevents auto-restart polling)
 
     @property
     def status_text(self) -> str:
@@ -206,14 +207,42 @@ class TrayApp:
                 self._running = False
                 self.update_status("disconnected")
 
+            # Agent stopped (e.g. from dashboard "Go Offline")
+            # Poll backend until GPU status is set back to "online"
+            self._poll_for_restart()
+
         self._agent_thread = threading.Thread(target=_run_in_thread, daemon=True)
         self._agent_thread.start()
+
+    def _poll_for_restart(self):
+        """Poll backend for GPU 'online' status and auto-restart the agent."""
+        if self._exiting:
+            return  # Don't poll if manually stopped from tray
+        import httpx
+
+        logger.info("Agent stopped — watching for 'Go Online' from dashboard…")
+        while not self._running and not self._exiting:
+            try:
+                time.sleep(5)
+                resp = httpx.get(
+                    f"{self.config.backend_http_url}/gpus/",
+                    timeout=5,
+                )
+                if resp.status_code == 200:
+                    for gpu in resp.json():
+                        if gpu.get("id") == self.config.gpu_id and gpu.get("status") == "online":
+                            logger.info("GPU marked online — restarting agent")
+                            self._start_agent()
+                            return
+            except Exception as e:
+                logger.debug("Polling backend: %s", e)
 
     def _stop_agent(self):
         if not self._running or not self._agent:
             return
 
         self._running = False
+        self._exiting = True  # Mark as manually stopped
         self.update_status("disconnected")
 
         if self._agent_loop and self._agent:
@@ -274,6 +303,7 @@ class TrayApp:
         subprocess.Popen(["explorer", str(log_dir)])
 
     def _on_start(self, icon=None, item=None):
+        self._exiting = False  # Reset manual stop flag
         self._start_agent()
 
     def _on_stop(self, icon=None, item=None):
