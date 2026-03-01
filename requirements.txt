@@ -12,3 +12,4 @@ pyinstaller
 dotenv
 docker
 httpx
+psutil

@@ -31,11 +31,34 @@ from src.core.gpu_detector import detect_gpus
 from src.core.ws_client import AgentWebSocket
 from src.core.executor import JobExecutor
 from src.core.log_streamer import LogStreamer
+from src.core.metrics_collector import collect_metrics
 
 # ── Logging ───────────────────────────────────────
 LOG_FORMAT = "%(asctime)s │ %(levelname)-7s │ %(name)s │ %(message)s"
 logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
 logger = logging.getLogger("unigpu.agent")
+
+
+class WebSocketLogHandler(logging.Handler):
+    """Custom log handler that buffers records and sends to the WS client."""
+
+    def __init__(self, ws_client: AgentWebSocket, loop: asyncio.AbstractEventLoop):
+        super().__init__(level=logging.INFO)
+        self._ws = ws_client
+        self._loop = loop
+        self._buffer: list[str] = []
+        self._formatter = logging.Formatter(LOG_FORMAT)
+
+    def emit(self, record: logging.LogRecord) -> None:
+        try:
+            line = self._formatter.format(record)
+            # Schedule send on the event loop (thread-safe)
+            self._loop.call_soon_threadsafe(
+                self._loop.create_task,
+                self._ws.send_agent_log(line),
+            )
+        except Exception:
+            pass  # Never let log handler crash the app
 
 
 class UniGPUAgent:
@@ -101,13 +124,22 @@ class UniGPUAgent:
         # 5. Setup signal handlers for graceful shutdown
         self._setup_signals()
 
-        # 6. Run WebSocket (blocks until shutdown)
+        # 6. Install WebSocket log handler so agent logs are relayed
+        loop = asyncio.get_event_loop()
+        self._ws_log_handler = WebSocketLogHandler(self.ws, loop)
+        logging.getLogger("unigpu").addHandler(self._ws_log_handler)
+
+        # 7. Run WebSocket + metrics loop concurrently
         logger.info("Agent is starting — connecting to %s", self.config.ws_connect_url)
         try:
+            metrics_task = asyncio.create_task(self._metrics_loop())
             await self.ws.start()
         except asyncio.CancelledError:
             pass
         finally:
+            # Clean up
+            metrics_task.cancel()
+            logging.getLogger("unigpu").removeHandler(self._ws_log_handler)
             logger.info("Agent shut down cleanly.")
 
     async def stop(self) -> None:
@@ -220,6 +252,23 @@ class UniGPUAgent:
             result = await exec_task
 
         return result
+
+    # ──────────────────────────────────────────────
+    # Metrics loop
+    # ──────────────────────────────────────────────
+
+    async def _metrics_loop(self) -> None:
+        """Periodically collect and send system metrics."""
+        while True:
+            try:
+                await asyncio.sleep(3)
+                metrics = collect_metrics()
+                await self.ws.send_metrics(metrics)
+                logger.debug("Sent metrics: %s", metrics)
+            except asyncio.CancelledError:
+                break
+            except Exception as exc:
+                logger.debug("Metrics send failed: %s", exc)
 
     # ──────────────────────────────────────────────
     # Utilities
