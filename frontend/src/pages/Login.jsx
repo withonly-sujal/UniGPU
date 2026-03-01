@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faArrowLeft } from '@fortawesome/free-solid-svg-icons';
 
 export default function Login() {
     const [username, setUsername] = useState('');
@@ -28,6 +30,9 @@ export default function Login() {
     return (
         <div className="auth-page">
             <div className="auth-card glass-elevated animate-in">
+                <Link to="/" className="btn btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginBottom: '24px', padding: '6px 12px', fontSize: '0.9rem', marginLeft: '-12px' }}>
+                    <FontAwesomeIcon icon={faArrowLeft} /> Back to Home
+                </Link>
                 <h2>Welcome back</h2>
                 <p className="subtitle">Sign in to your UniGPU account</p>
 

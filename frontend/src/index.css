@@ -167,14 +167,15 @@ a:hover {
 }
 
 .btn-ghost {
-  background: transparent;
+  background: rgba(255, 255, 255, 0.02);
   color: var(--text-secondary);
-  border: 1px solid transparent;
+  border: 1px solid var(--border);
 }
 
 .btn-ghost:hover {
+  background: var(--bg-surface);
   color: var(--text-primary);
-  border-color: var(--border);
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 /* ── Inputs ─────────────────────────────────────── */
@@ -641,7 +642,8 @@ tbody tr:last-child td {
 
 .landing-nav .nav-btns {
   display: flex;
-  gap: 10px;
+  align-items: center;
+  gap: 16px;
 }
 
 .hero {
@@ -881,10 +883,21 @@ tbody tr:last-child td {
   line-height: 1;
 }
 
-.metric-value.green { color: var(--green); }
-.metric-value.amber { color: var(--amber); }
-.metric-value.red   { color: var(--red); }
-.metric-value.cyan  { color: var(--cyan); }
+.metric-value.green {
+  color: var(--green);
+}
+
+.metric-value.amber {
+  color: var(--amber);
+}
+
+.metric-value.red {
+  color: var(--red);
+}
+
+.metric-value.cyan {
+  color: var(--cyan);
+}
 
 .metric-bar-wrapper {
   width: 100%;

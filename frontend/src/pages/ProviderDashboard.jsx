@@ -2,6 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import Sidebar from '../components/Sidebar';
 import api from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTemperatureQuarter } from '@fortawesome/free-solid-svg-icons';
+import { faServer } from '@fortawesome/free-solid-svg-icons';
+import { faMicrochip } from '@fortawesome/free-solid-svg-icons';
+import { faMemory } from '@fortawesome/free-solid-svg-icons';
 
 const WS_BASE = 'ws://localhost:8000';
 
@@ -174,7 +179,7 @@ export default function ProviderDashboard() {
                     {liveMetrics ? (
                         <div className="grid-4">
                             <div className="glass metric-card">
-                                <div className="metric-icon">🌡️</div>
+                                <div className="metric-icon"><FontAwesomeIcon icon={faTemperatureQuarter} /></div>
                                 <div className="metric-info">
                                     <span className="metric-label">GPU Temp</span>
                                     <span className={`metric-value ${(liveMetrics.gpu_temp_c || 0) > 80 ? 'red' : (liveMetrics.gpu_temp_c || 0) > 65 ? 'amber' : 'green'}`}>
@@ -189,7 +194,7 @@ export default function ProviderDashboard() {
                                 </div>
                             </div>
                             <div className="glass metric-card">
-                                <div className="metric-icon">🎮</div>
+                                <div className="metric-icon"><FontAwesomeIcon icon={faMicrochip} /></div>
                                 <div className="metric-info">
                                     <span className="metric-label">GPU Usage</span>
                                     <span className={`metric-value ${(liveMetrics.gpu_util_pct || 0) > 90 ? 'red' : (liveMetrics.gpu_util_pct || 0) > 60 ? 'amber' : 'green'}`}>
@@ -204,7 +209,7 @@ export default function ProviderDashboard() {
                                 </div>
                             </div>
                             <div className="glass metric-card">
-                                <div className="metric-icon">🖥️</div>
+                                <div className="metric-icon"><FontAwesomeIcon icon={faServer} /></div>
                                 <div className="metric-info">
                                     <span className="metric-label">CPU Usage</span>
                                     <span className={`metric-value ${(liveMetrics.cpu_pct || 0) > 90 ? 'red' : (liveMetrics.cpu_pct || 0) > 60 ? 'amber' : 'green'}`}>
@@ -219,7 +224,7 @@ export default function ProviderDashboard() {
                                 </div>
                             </div>
                             <div className="glass metric-card">
-                                <div className="metric-icon">💾</div>
+                                <div className="metric-icon"><FontAwesomeIcon icon={faMemory} /></div>
                                 <div className="metric-info">
                                     <span className="metric-label">Memory</span>
                                     <span className={`metric-value ${(liveMetrics.mem_pct || 0) > 90 ? 'red' : (liveMetrics.mem_pct || 0) > 70 ? 'amber' : 'green'}`}>

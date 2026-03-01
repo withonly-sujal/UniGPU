@@ -13,6 +13,9 @@ export default function Landing() {
             <nav className="landing-nav">
                 <span className="brand">⬡ UniGPU</span>
                 <div className="nav-btns">
+                    <Link to="/about" className="btn btn-ghost">About Us</Link>
+                    <Link to="/how-to-use" className="btn btn-ghost">How to Use</Link>
+                    <Link to="/download" className="btn btn-ghost">Download Agent</Link>
                     {user ? (
                         <Link to="/dashboard" className="btn btn-primary">Dashboard</Link>
                     ) : (
@@ -31,7 +34,8 @@ export default function Landing() {
                 </h1>
                 <p>
                     UniGPU connects idle student GPUs into a powerful compute marketplace.
-                    Submit training jobs, share your GPU, and earn — all peer-to-peer.
+                    Submit training jobs, share your GPU, and earn! <br />
+                    All peer-to-peer.
                 </p>
                 <div className="hero-buttons">
                     <Link to="/register" className="btn btn-primary">Start Sharing</Link>

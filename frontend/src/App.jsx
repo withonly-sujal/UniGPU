@@ -3,6 +3,9 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import HowToUse from './pages/HowToUse';
+import AboutUs from './pages/AboutUs';
+import Download from './pages/Download';
 import ClientDashboard from './pages/ClientDashboard';
 import ProviderDashboard from './pages/ProviderDashboard';
 import AdminDashboard from './pages/AdminDashboard';
@@ -29,6 +32,9 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Landing />} />
+          <Route path="/how-to-use" element={<HowToUse />} />
+          <Route path="/about" element={<AboutUs />} />
+          <Route path="/download" element={<Download />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<DashboardRedirect />} />

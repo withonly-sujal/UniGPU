@@ -21,10 +21,10 @@ export default function Sidebar() {
 
     return (
         <aside className="sidebar">
-            <div className="sidebar-logo">
+            <NavLink to="/" className="sidebar-logo" style={{ textDecoration: 'none', color: 'inherit' }}>
                 <span className="logo-icon">⬡</span>
                 <h1>UniGPU</h1>
-            </div>
+            </NavLink>
 
             <nav className="sidebar-nav">
                 {links.map(l => (
