@@ -64,6 +64,16 @@ export default function ClientDashboard() {
         } catch { setLogs('Failed to load logs.'); }
     };
 
+    const downloadLogs = () => {
+        const blob = new Blob([logs], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `job_${logModal.slice(0, 8)}_logs.txt`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
     const statusBadge = (s) => <span className={`badge badge-${s}`}>{s}</span>;
 
     return (
@@ -306,7 +316,13 @@ export default function ClientDashboard() {
                         <div className="modal glass-elevated" onClick={e => e.stopPropagation()}>
                             <div className="modal-header">
                                 <h3>Job Logs — {logModal.slice(0, 8)}...</h3>
-                                <button className="modal-close" onClick={() => setLogModal(null)}>×</button>
+                                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                    <button className="btn btn-ghost btn-small" onClick={downloadLogs}
+                                        style={{ fontSize: '0.8rem' }}>
+                                        ⬇ Download
+                                    </button>
+                                    <button className="modal-close" onClick={() => setLogModal(null)}>×</button>
+                                </div>
                             </div>
                             <div className="log-viewer">
                                 {logs.split('\n').map((line, i) => (

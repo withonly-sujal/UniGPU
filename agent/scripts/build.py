@@ -59,7 +59,7 @@ def build():
     cmd = [
         sys.executable, "-m", "PyInstaller",
         "--name", APP_NAME,
-        "--onedir",
+        "--onefile",
         "--noconsole",                   # GUI mode - no console window
         "--noconfirm",                   # Overwrite output without asking
         "--clean",                       # Clean cache before building
@@ -118,20 +118,12 @@ def build():
         print(f"\n  Build FAILED (exit code {result.returncode})")
         sys.exit(1)
 
-    # Copy extra assets to dist
-    dist_app = DIST_DIR / APP_NAME
-    if dist_app.exists():
-        # Copy .env.example
-        env_example = AGENT_DIR / ".env.example"
-        if env_example.exists():
-            shutil.copy2(env_example, dist_app / ".env.example")
-
-        # Bundle Tcl/Tk data (required for tkinter GUI in .exe)
-        _bundle_tcl_tk(dist_app)
-
+    exe_path = DIST_DIR / f"{APP_NAME}.exe"
+    if exe_path.exists():
+        size_mb = exe_path.stat().st_size / (1024 * 1024)
         print(f"\n  Build SUCCESS")
-        print(f"  Output: {dist_app}")
-        print(f"  Run:    {dist_app / (APP_NAME + '.exe')}")
+        print(f"  Output: {exe_path}")
+        print(f"  Size:   {size_mb:.1f} MB")
     else:
         print(f"\n  Build completed - check {DIST_DIR}")
 
