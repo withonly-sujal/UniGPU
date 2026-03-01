@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowLeft, faLightbulb, faWrench, faUsers, faGraduationCap, faBriefcase } from '@fortawesome/free-solid-svg-icons';
+import { faGithub, faLinkedin, faInstagram } from '@fortawesome/free-brands-svg-icons';
 import { Cloudinary } from '@cloudinary/url-gen';
 import { AdvancedImage } from '@cloudinary/react';
 import { fill } from '@cloudinary/url-gen/actions/resize';
@@ -99,7 +100,13 @@ export default function AboutUs() {
                                 alt="Swanand Wakadmane"
                             />
                             <h3 style={{ fontSize: '1.5rem', fontWeight: 700, margin: '0 0 8px 0', color: 'var(--text-primary)' }}>Swanand Wakadmane</h3>
-                            <p style={{ color: 'var(--cyan)', fontWeight: 600, fontSize: '1rem', margin: '0 0 24px 0' }}>Co-founder & Developer</p>
+                            <p style={{ color: 'var(--purple)', fontWeight: 600, fontSize: '1rem', margin: '0 0 16px 0' }}>Co-founder & Developer</p>
+
+                            <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
+                                <a href="https://github.com/IammSwanand" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-muted)', fontSize: '1.4rem', transition: 'var(--transition)' }} onMouseOver={e => e.currentTarget.style.color = '#fff'} onMouseOut={e => e.currentTarget.style.color = 'var(--text-muted)'}><FontAwesomeIcon icon={faGithub} /></a>
+                                <a href="https://www.linkedin.com/in/swanand-wakadmane/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-muted)', fontSize: '1.4rem', transition: 'var(--transition)' }} onMouseOver={e => e.currentTarget.style.color = '#0077b5'} onMouseOut={e => e.currentTarget.style.color = 'var(--text-muted)'}><FontAwesomeIcon icon={faLinkedin} /></a>
+                                <a href="https://www.instagram.com/imagined_by_swanand/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-muted)', fontSize: '1.4rem', transition: 'var(--transition)' }} onMouseOver={e => e.currentTarget.style.color = '#e1306c'} onMouseOut={e => e.currentTarget.style.color = 'var(--text-muted)'}><FontAwesomeIcon icon={faInstagram} /></a>
+                            </div>
 
                             <div style={{ width: '100%', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                 <div>
@@ -107,8 +114,8 @@ export default function AboutUs() {
                                         <FontAwesomeIcon icon={faGraduationCap} /> Education
                                     </h4>
                                     <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '0.95rem', lineHeight: '1.5' }}>
-                                        [Insert Education Details Here] <br />
-                                        <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Class of 202X</span>
+                                        Artificial Intelligence and Data Science Engineering Undergraduate <br />
+                                        <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Class of 2027</span>
                                     </p>
                                 </div>
                                 <div>
@@ -116,7 +123,7 @@ export default function AboutUs() {
                                         <FontAwesomeIcon icon={faBriefcase} /> Experience & Skills
                                     </h4>
                                     <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '0.95rem', lineHeight: '1.5' }}>
-                                        [Add a short bio, relevant experience, or key technical skills here.]
+                                        AI Engineer Intern at Devmani  | Python - Django, RAG, LangChain, FastAPI | FineTuning LLM | UI UX, Blender 3D, Unreal Engine
                                     </p>
                                 </div>
                             </div>
@@ -131,7 +138,13 @@ export default function AboutUs() {
                                 alt="Sujal Kadam"
                             />
                             <h3 style={{ fontSize: '1.5rem', fontWeight: 700, margin: '0 0 8px 0', color: 'var(--text-primary)' }}>Sujal Kadam</h3>
-                            <p style={{ color: 'var(--purple)', fontWeight: 600, fontSize: '1rem', margin: '0 0 24px 0' }}>Co-founder & Developer</p>
+                            <p style={{ color: 'var(--purple)', fontWeight: 600, fontSize: '1rem', margin: '0 0 16px 0' }}>Co-founder & Developer</p>
+
+                            <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
+                                <a href="https://github.com/withonly-sujal" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-muted)', fontSize: '1.4rem', transition: 'var(--transition)' }} onMouseOver={e => e.currentTarget.style.color = '#fff'} onMouseOut={e => e.currentTarget.style.color = 'var(--text-muted)'}><FontAwesomeIcon icon={faGithub} /></a>
+                                <a href="https://www.linkedin.com/in/sujal-kadam-bb5663287/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-muted)', fontSize: '1.4rem', transition: 'var(--transition)' }} onMouseOver={e => e.currentTarget.style.color = '#0077b5'} onMouseOut={e => e.currentTarget.style.color = 'var(--text-muted)'}><FontAwesomeIcon icon={faLinkedin} /></a>
+                                <a href="https://www.instagram.com/sujal.recreates/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-muted)', fontSize: '1.4rem', transition: 'var(--transition)' }} onMouseOver={e => e.currentTarget.style.color = '#e1306c'} onMouseOut={e => e.currentTarget.style.color = 'var(--text-muted)'}><FontAwesomeIcon icon={faInstagram} /></a>
+                            </div>
 
                             <div style={{ width: '100%', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                 <div>
@@ -139,8 +152,8 @@ export default function AboutUs() {
                                         <FontAwesomeIcon icon={faGraduationCap} /> Education
                                     </h4>
                                     <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '0.95rem', lineHeight: '1.5' }}>
-                                        [Insert Education Details Here] <br />
-                                        <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Class of 202X</span>
+                                        Information Technology Engineering Undergraduate <br />
+                                        <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Class of 2027</span>
                                     </p>
                                 </div>
                                 <div>
@@ -148,7 +161,7 @@ export default function AboutUs() {
                                         <FontAwesomeIcon icon={faBriefcase} /> Experience & Skills
                                     </h4>
                                     <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '0.95rem', lineHeight: '1.5' }}>
-                                        [Add a short bio, relevant experience, or key technical skills here.]
+                                        Passionate about Technology and Learning | Passionate About Video Production, 3D Animations, Digital Art
                                     </p>
                                 </div>
                             </div>
