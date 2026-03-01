@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faArrowLeft } from '@fortawesome/free-solid-svg-icons';
+import { faArrowLeft, faRocket, faBolt } from '@fortawesome/free-solid-svg-icons';
 
 export default function Register() {
     const [email, setEmail] = useState('');
@@ -44,9 +44,9 @@ export default function Register() {
                         <label>I want to</label>
                         <div className="role-selector">
                             <button type="button" className={`role-btn ${role === 'client' ? 'selected' : ''}`}
-                                onClick={() => setRole('client')}>🚀 Submit Jobs</button>
+                                onClick={() => setRole('client')}><FontAwesomeIcon icon={faRocket} /> Use GPU</button>
                             <button type="button" className={`role-btn ${role === 'provider' ? 'selected' : ''}`}
-                                onClick={() => setRole('provider')}>⚡ Share GPU</button>
+                                onClick={() => setRole('provider')}><FontAwesomeIcon icon={faBolt} /> Share GPU</button>
                         </div>
                     </div>
                     <div className="form-group">

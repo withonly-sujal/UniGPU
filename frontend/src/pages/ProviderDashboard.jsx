@@ -195,7 +195,7 @@ export default function ProviderDashboard() {
                 {/* Live System Metrics */}
                 <div className="section animate-in">
                     <div className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        ⚡ Live System Metrics
+                        Live System Metrics
                         <span className={`ws-indicator ${wsConnected ? 'ws-connected' : 'ws-disconnected'}`}>
                             {wsConnected ? '● Connected' : '○ Disconnected'}
                         </span>
