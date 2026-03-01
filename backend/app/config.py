@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
 
     # ── Billing ──
-    RATE_PER_SECOND: float = 0.001  # $0.001 per second of GPU usage
+    RATE_PER_SECOND: float = 0.002  # $0.001 per second of GPU usage
 
     # ── Heartbeat ──
     HEARTBEAT_TIMEOUT_SECONDS: int = 60  # GPU marked offline after 60s silence
