@@ -141,6 +141,26 @@ class AgentWebSocket:
                 else:
                     logger.error("Gave up sending job_status=%s for %s after %d attempts", status, job_id, retries)
 
+    async def send_metrics(self, metrics: Dict[str, Any]) -> None:
+        """
+        Send system metrics (GPU temp, GPU util, CPU, RAM) to backend.
+        Backend expects: {"type": "metrics", "data": {...}}
+        """
+        await self.send({
+            "type": "metrics",
+            "data": metrics,
+        })
+
+    async def send_agent_log(self, data: str) -> None:
+        """
+        Send agent log lines to backend for relay to provider dashboard.
+        Backend expects: {"type": "agent_log", "data": "..."}
+        """
+        await self.send({
+            "type": "agent_log",
+            "data": data,
+        })
+
     # ──────────────────────────────────────────────
     # Internal
     # ──────────────────────────────────────────────

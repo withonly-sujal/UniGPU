@@ -1,13 +1,26 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Sidebar from '../components/Sidebar';
 import api from '../api/client';
+import { useAuth } from '../context/AuthContext';
+
+const WS_BASE = 'ws://localhost:8000';
 
 export default function ProviderDashboard() {
+    const { user } = useAuth();
     const [gpus, setGPUs] = useState([]);
     const [wallet, setWallet] = useState(null);
     const [transactions, setTransactions] = useState([]);
     const [showRegister, setShowRegister] = useState(false);
     const [form, setForm] = useState({ name: '', vram_mb: '', cuda_version: '' });
+
+    // Live data from WebSocket
+    const [metrics, setMetrics] = useState({});      // gpu_id → latest metrics
+    const [agentLogs, setAgentLogs] = useState([]);   // array of log lines
+    const [wsConnected, setWsConnected] = useState(false);
+
+    const logEndRef = useRef(null);
+    const wsRef = useRef(null);
+    const MAX_LOG_LINES = 500;
 
     const load = async () => {
         try {
@@ -19,6 +32,80 @@ export default function ProviderDashboard() {
     };
 
     useEffect(() => { load(); }, []);
+
+    // WebSocket connection for real-time updates
+    useEffect(() => {
+        if (!user?.id) return;
+
+        let ws;
+        let reconnectTimer;
+
+        const connect = () => {
+            ws = new WebSocket(`${WS_BASE}/ws/provider/${user.id}`);
+            wsRef.current = ws;
+
+            ws.onopen = () => {
+                setWsConnected(true);
+                console.log('Provider WS connected');
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const msg = JSON.parse(event.data);
+
+                    if (msg.type === 'metrics') {
+                        setMetrics(prev => ({ ...prev, [msg.gpu_id]: msg.data }));
+                    } else if (msg.type === 'agent_log') {
+                        setAgentLogs(prev => {
+                            const next = [...prev, { time: new Date().toLocaleTimeString(), text: msg.data, gpu_id: msg.gpu_id }];
+                            return next.length > MAX_LOG_LINES ? next.slice(-MAX_LOG_LINES) : next;
+                        });
+                    } else if (msg.type === 'job_log') {
+                        setAgentLogs(prev => {
+                            const next = [...prev, { time: new Date().toLocaleTimeString(), text: `[JOB ${msg.job_id?.slice(0, 8)}] ${msg.data}`, gpu_id: msg.gpu_id, isJob: true }];
+                            return next.length > MAX_LOG_LINES ? next.slice(-MAX_LOG_LINES) : next;
+                        });
+                    } else if (msg.type === 'job_status') {
+                        setAgentLogs(prev => {
+                            const next = [...prev, { time: new Date().toLocaleTimeString(), text: `[JOB ${msg.job_id?.slice(0, 8)}] Status → ${msg.status}`, gpu_id: msg.gpu_id, isStatus: true }];
+                            return next.length > MAX_LOG_LINES ? next.slice(-MAX_LOG_LINES) : next;
+                        });
+                        load(); // Refresh data on job status changes
+                    } else if (msg.type === 'agent_status') {
+                        load(); // Refresh GPU list on status changes
+                    }
+                } catch (err) {
+                    console.error('WS message parse error:', err);
+                }
+            };
+
+            ws.onclose = () => {
+                setWsConnected(false);
+                console.log('Provider WS disconnected, reconnecting in 3s…');
+                reconnectTimer = setTimeout(connect, 3000);
+            };
+
+            ws.onerror = (err) => {
+                console.error('Provider WS error:', err);
+                ws.close();
+            };
+        };
+
+        connect();
+
+        return () => {
+            clearTimeout(reconnectTimer);
+            if (wsRef.current) {
+                wsRef.current.onclose = null; // prevent reconnect on unmount
+                wsRef.current.close();
+            }
+        };
+    }, [user?.id]);
+
+    // Auto-scroll logs
+    useEffect(() => {
+        logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [agentLogs]);
 
     const handleRegisterGPU = async () => {
         try {
@@ -42,6 +129,10 @@ export default function ProviderDashboard() {
     };
 
     const statusBadge = (s) => <span className={`badge badge-${s}`}>{s}</span>;
+
+    // Get combined metrics (show first GPU's metrics if available)
+    const activeGpuId = gpus.find(g => g.status === 'online' || g.status === 'busy')?.id;
+    const liveMetrics = activeGpuId ? metrics[activeGpuId] : null;
 
     return (
         <div className="layout">
@@ -70,6 +161,86 @@ export default function ProviderDashboard() {
                         <span className="stat-label">Earnings</span>
                         <span className="stat-value green">${wallet?.balance?.toFixed(2) || '0.00'}</span>
                     </div>
+                </div>
+
+                {/* Live System Metrics */}
+                <div className="section animate-in">
+                    <div className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        ⚡ Live System Metrics
+                        <span className={`ws-indicator ${wsConnected ? 'ws-connected' : 'ws-disconnected'}`}>
+                            {wsConnected ? '● Connected' : '○ Disconnected'}
+                        </span>
+                    </div>
+                    {liveMetrics ? (
+                        <div className="grid-4">
+                            <div className="glass metric-card">
+                                <div className="metric-icon">🌡️</div>
+                                <div className="metric-info">
+                                    <span className="metric-label">GPU Temp</span>
+                                    <span className={`metric-value ${(liveMetrics.gpu_temp_c || 0) > 80 ? 'red' : (liveMetrics.gpu_temp_c || 0) > 65 ? 'amber' : 'green'}`}>
+                                        {liveMetrics.gpu_temp_c ?? '—'}°C
+                                    </span>
+                                </div>
+                                <div className="metric-bar-wrapper">
+                                    <div className="metric-bar" style={{
+                                        width: `${Math.min((liveMetrics.gpu_temp_c || 0) / 100 * 100, 100)}%`,
+                                        background: (liveMetrics.gpu_temp_c || 0) > 80 ? 'var(--red)' : (liveMetrics.gpu_temp_c || 0) > 65 ? 'var(--amber)' : 'var(--green)'
+                                    }} />
+                                </div>
+                            </div>
+                            <div className="glass metric-card">
+                                <div className="metric-icon">🎮</div>
+                                <div className="metric-info">
+                                    <span className="metric-label">GPU Usage</span>
+                                    <span className={`metric-value ${(liveMetrics.gpu_util_pct || 0) > 90 ? 'red' : (liveMetrics.gpu_util_pct || 0) > 60 ? 'amber' : 'green'}`}>
+                                        {liveMetrics.gpu_util_pct ?? '—'}%
+                                    </span>
+                                </div>
+                                <div className="metric-bar-wrapper">
+                                    <div className="metric-bar" style={{
+                                        width: `${liveMetrics.gpu_util_pct || 0}%`,
+                                        background: (liveMetrics.gpu_util_pct || 0) > 90 ? 'var(--red)' : (liveMetrics.gpu_util_pct || 0) > 60 ? 'var(--amber)' : 'var(--green)'
+                                    }} />
+                                </div>
+                            </div>
+                            <div className="glass metric-card">
+                                <div className="metric-icon">🖥️</div>
+                                <div className="metric-info">
+                                    <span className="metric-label">CPU Usage</span>
+                                    <span className={`metric-value ${(liveMetrics.cpu_pct || 0) > 90 ? 'red' : (liveMetrics.cpu_pct || 0) > 60 ? 'amber' : 'green'}`}>
+                                        {liveMetrics.cpu_pct ?? '—'}%
+                                    </span>
+                                </div>
+                                <div className="metric-bar-wrapper">
+                                    <div className="metric-bar" style={{
+                                        width: `${liveMetrics.cpu_pct || 0}%`,
+                                        background: (liveMetrics.cpu_pct || 0) > 90 ? 'var(--red)' : (liveMetrics.cpu_pct || 0) > 60 ? 'var(--amber)' : 'var(--green)'
+                                    }} />
+                                </div>
+                            </div>
+                            <div className="glass metric-card">
+                                <div className="metric-icon">💾</div>
+                                <div className="metric-info">
+                                    <span className="metric-label">Memory</span>
+                                    <span className={`metric-value ${(liveMetrics.mem_pct || 0) > 90 ? 'red' : (liveMetrics.mem_pct || 0) > 70 ? 'amber' : 'green'}`}>
+                                        {liveMetrics.mem_pct ?? '—'}%
+                                    </span>
+                                </div>
+                                <div className="metric-bar-wrapper">
+                                    <div className="metric-bar" style={{
+                                        width: `${liveMetrics.mem_pct || 0}%`,
+                                        background: (liveMetrics.mem_pct || 0) > 90 ? 'var(--red)' : (liveMetrics.mem_pct || 0) > 70 ? 'var(--amber)' : 'var(--green)'
+                                    }} />
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="glass" style={{ padding: '30px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                            {wsConnected
+                                ? 'Waiting for agent metrics… Make sure the agent is running.'
+                                : 'WebSocket not connected. Metrics will appear once the agent is online.'}
+                        </div>
+                    )}
                 </div>
 
                 <div className="grid-2">
@@ -145,6 +316,40 @@ export default function ProviderDashboard() {
                                 </div>
                             )}
                         </div>
+                    </div>
+                </div>
+
+                {/* Agent Logs Terminal */}
+                <div className="section animate-in">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            📋 Agent Logs
+                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 400 }}>
+                                {agentLogs.length} lines
+                            </span>
+                        </div>
+                        <button
+                            className="btn btn-small"
+                            style={{ background: 'var(--glass-bg)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+                            onClick={() => setAgentLogs([])}
+                        >
+                            Clear
+                        </button>
+                    </div>
+                    <div className="log-terminal">
+                        {agentLogs.length === 0 ? (
+                            <div className="log-empty">
+                                No logs yet. Logs will appear here when the agent is running.
+                            </div>
+                        ) : (
+                            agentLogs.map((log, i) => (
+                                <div key={i} className={`log-line ${log.isJob ? 'log-job' : ''} ${log.isStatus ? 'log-status' : ''}`}>
+                                    <span className="log-time">{log.time}</span>
+                                    <span className="log-text">{log.text}</span>
+                                </div>
+                            ))
+                        )}
+                        <div ref={logEndRef} />
                     </div>
                 </div>
 
