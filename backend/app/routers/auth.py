@@ -40,14 +40,16 @@ async def register(
     data: UserCreate,
     db: AsyncSession = Depends(get_db),
 ):
-    # Get limiter from app state (set in main.py)
-    limiter = request.app.state.limiter
-    
-    # Check rate limit: 5 registrations per minute per IP
-    try:
-        limiter.try_request("5/minute", request)
-    except Exception:
-        raise HTTPException(status_code=429, detail="Rate limit exceeded. Max 5 registrations per minute.")
+    # Rate limiting disabled in DEBUG mode (local development)
+    if not settings.DEBUG:
+        # Get limiter from app state (set in main.py)
+        limiter = request.app.state.limiter
+        
+        # Check rate limit: 5 registrations per minute per IP
+        try:
+            limiter.try_request("5/minute", request)
+        except Exception:
+            raise HTTPException(status_code=429, detail="Rate limit exceeded. Max 5 registrations per minute.")
     
     # Check duplicates
     existing = await db.execute(
@@ -83,15 +85,18 @@ async def login(
     Login with exponential backoff and progressive delays.
     Failed attempts trigger increasing delays: 1s → 2s → 4s → 8s → 16s
     After 3 failures, account is locked for 15 minutes.
+    Rate limiting disabled in DEBUG mode (local development).
     """
-    # Get limiter from app state (set in main.py)
-    limiter = request.app.state.limiter
-    
-    # Check rate limit: 5 login attempts per minute per IP (application-level)
-    try:
-        limiter.try_request("5/minute", request)
-    except Exception:
-        raise HTTPException(status_code=429, detail="Rate limit exceeded. Max 5 login attempts per minute.")
+    # Rate limiting disabled in DEBUG mode (local development)
+    if not settings.DEBUG:
+        # Get limiter from app state (set in main.py)
+        limiter = request.app.state.limiter
+        
+        # Check rate limit: 5 login attempts per minute per IP (application-level)
+        try:
+            limiter.try_request("5/minute", request)
+        except Exception:
+            raise HTTPException(status_code=429, detail="Rate limit exceeded. Max 5 login attempts per minute.")
     
     # Get client IP for progressive delay tracking
     client_ip = request.client.host if request.client else "unknown"

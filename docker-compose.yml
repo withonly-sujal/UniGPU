@@ -59,6 +59,7 @@ services:
       dockerfile: Dockerfile
     container_name: unigpu-celery
     command: celery -A app.worker.celery_app worker --loglevel=info --beat
+    user: "1000:1000"  # Run as non-root (security best practice)
     environment:
       DATABASE_URL: postgresql+asyncpg://unigpu:unigpu_secret@postgres:5432/unigpu
       REDIS_URL: redis://redis:6379/0

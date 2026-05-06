@@ -56,6 +56,13 @@ async def lifespan(app: FastAPI):
             pass  # Extension might already exist or be unavailable
     print("✅ Database tables initialized")
     
+    # Initialize Redis rate limiter with REDIS_URL from environment
+    from app.redis_rate_limiter import get_rate_limiter
+    redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    print(f"🔴 Initializing Redis rate limiter: {redis_url}")
+    get_rate_limiter(redis_url)  # Initialize the singleton with proper Redis URL
+    print("✅ Redis rate limiter initialized")
+    
     # Start background cleanup task for expired GPU locks
     cleanup_task = asyncio.create_task(_cleanup_gpu_locks_background())
     app.state.cleanup_task = cleanup_task

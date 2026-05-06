@@ -16,6 +16,7 @@ celery_app.conf.update(
     result_serializer="json",
     timezone="UTC",
     enable_utc=True,
+    broker_connection_retry_on_startup=True,  # Celery 6.0+ compatibility
     beat_schedule={
         "check-heartbeats-every-30s": {
             "task": "app.worker.tasks.check_heartbeats",
