@@ -1,4 +1,6 @@
 <h2> You can download the UniGPU Agent's .exe file from here 👉 <h2>
+<h2> Open source contributors are welcomed! create a new branch by feature-(feature you implemented) and then open a PR <h2>
+<h2> We are currently in Deployment stage to test this Product in real world environment <h2>
 <p align="center">
   <h1 align="center">⬡ UniGPU</h1>
   <p align="center"><strong>Peer-to-Peer GPU Compute Marketplace — Built for Students, by Students</strong></p>
