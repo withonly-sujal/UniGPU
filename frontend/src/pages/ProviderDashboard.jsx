@@ -8,9 +8,12 @@ import { faServer } from '@fortawesome/free-solid-svg-icons';
 import { faMicrochip } from '@fortawesome/free-solid-svg-icons';
 import { faMemory } from '@fortawesome/free-solid-svg-icons';
 
-// WebSocket URL: automatically uses wss:// in production (HTTPS) and ws:// in dev (HTTP)
-// Points to the same host/domain as the page — Nginx routes /ws/* to FastAPI
-const WS_BASE = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}`;
+// WebSocket URL: prefer Vite env `VITE_WS_BASE_URL` when provided (e.g. wss://api.example.com)
+// Otherwise default to same-origin (wss:// or ws:// based on page protocol)
+const WS_ENV = import.meta.env.VITE_WS_BASE_URL;
+const WS_BASE = WS_ENV && WS_ENV.length > 0
+    ? WS_ENV
+    : `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}`;
 
 export default function ProviderDashboard() {
     const { user, token } = useAuth();
