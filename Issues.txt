@@ -1,0 +1,27 @@
+1. agent app window resolution and scaling issue (fixed)
+2. convert agent in .exe and create installation wizard for all OS (windown only for now)(fixed)
+3. improve agent UI (optional)
+4. agent remains in system tray even after shut down (fixed)
+5. SSL certificate not being generated as local host using but when backend is deployed we will need it (production grade issue)
+6. client login but still says select role (fixed)
+7. When process stoped on website it doesn't stop in docker job (Fixed)
+8. GPU status issue on provider dashboard (fixed)
+9. Credit system issue (fixed)
+10. Emoji issue (fixed)
+
+
+Critical Stuff:
+1. New git repo for agent dev only (Done)
+2. Remove branches from public repo (Done)
+3. Node Validation
+4. Improvement in exe (security, UI, download location just like antigravity or blender etc) 
+5. metrics tracking fails when register same GPU multiple times
+6. identify new gpu-id dynamically and update the DB everytime the agent starts and registers the gpu and whenever the db clears
+
+
+Deployed Works:
+1. Start sharing should go to Provider login same for client as well
+2. Live Metrics not working WebSocket Issue
+3. Dashboard Reload goes into Error 404
+4. Add a GPU De-Register function
+5. 
