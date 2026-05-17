@@ -35,7 +35,7 @@ export default function Download() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', alignItems: 'center' }}>
                         {/* Windows Download Button */}
                         <a
-                            href="https://drive.google.com/drive/folders/1hWBlrREX4sN9YadDd1aFh1V-ogHUW0W-?usp=sharing"
+                            href="https://vgwrjfdssmiqetbjekeo.supabase.co/storage/v1/object/public/UniGPU_Agent.exe/UniGPU%20Agent.exe"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="btn btn-primary"
