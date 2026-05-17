@@ -13,6 +13,7 @@
   <img src="https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white" />
   <img src="https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white" />
   <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" />
+  <img src="https://img.shields.io/badge/License-Apache_2.0-blue?style=for-the-badge" />
 </p>
 
 ---
@@ -275,9 +276,9 @@ Full interactive API docs available at **http://localhost:8000/docs** (Swagger U
 
 ## 📄 License
 
-This project is proprietary software. All rights reserved.
+This project is licensed under the **Apache License 2.0** — see the [LICENSE](LICENSE) file for details.
 
-Unauthorized copying, modification, distribution, or use of this software, in whole or in part, is strictly prohibited without explicit written permission from the authors.
+You are free to use, modify, and distribute this software under the terms of the license. Contributions are welcome and will be accepted under the same license.
 
 ---
 
@@ -297,5 +298,5 @@ Unauthorized copying, modification, distribution, or use of this software, in wh
 <p align="center">
   <strong>⬡ UniGPU</strong> — Peer-to-Peer GPU Marketplace<br/>
   Built for Students · By Students<br/><br/>
-  © 2026 UniGPU. All rights reserved.
+  © 2026 UniGPU Contributors. Licensed under Apache 2.0.
 </p>
