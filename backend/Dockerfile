@@ -14,6 +14,7 @@ RUN mkdir -p uploads
 
 EXPOSE 8000
 
-# --proxy-headers: trust X-Forwarded-For / X-Forwarded-Proto from Nginx
-# --workers 2:     two async workers (safe for a 1-2 vCPU VPS)
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2", "--proxy-headers", "--forwarded-allow-ips", "*"]
+# Start Uvicorn on Railway's dynamic PORT (fallback to 8000 for local/dev)
+# --proxy-headers: trust X-Forwarded-For / X-Forwarded-Proto from reverse proxies
+# --workers 2: two async workers (safe for a 1-2 vCPU VPS)
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 2 --proxy-headers --forwarded-allow-ips '*'"]
