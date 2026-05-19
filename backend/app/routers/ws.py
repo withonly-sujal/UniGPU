@@ -46,6 +46,7 @@ def _is_rate_limited(connection_id: str) -> bool:
 
 async def _authenticate_websocket_user(websocket: WebSocket, token: str | None) -> User | None:
     if not token:
+        print("❌ WebSocket auth failed: no token provided")
         await websocket.close(code=1008)
         return None
 
@@ -54,7 +55,9 @@ async def _authenticate_websocket_user(websocket: WebSocket, token: str | None) 
         user_id = payload.get("sub")
         if user_id is None:
             raise JWTError("Missing subject")
-    except JWTError:
+        print(f"✅ WebSocket token decoded successfully for user_id={user_id}")
+    except JWTError as exc:
+        print(f"❌ WebSocket auth failed: JWT decode error: {exc}")
         await websocket.close(code=1008)
         return None
 
