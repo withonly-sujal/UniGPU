@@ -35,7 +35,11 @@ export function AuthProvider({ children }) {
     };
 
     const register = async (data) => {
+        // Register the user
         await api.register(data);
+        // Auto-login after successful registration
+        const userData = await login(data.username, data.password);
+        return userData;
     };
 
     const logout = () => {

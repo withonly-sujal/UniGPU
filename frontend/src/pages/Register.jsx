@@ -23,7 +23,9 @@ export default function Register() {
         setLoading(true);
         try {
             await register({ email, username, password, role });
-            navigate('/login');
+            // Auto-login succeeded, redirect to dashboard
+            const dashboardRoute = role === 'provider' ? '/provider-dashboard' : '/client-dashboard';
+            navigate(dashboardRoute);
         } catch (err) {
             setError(err.detail || 'Registration failed');
         } finally {
