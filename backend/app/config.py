@@ -54,7 +54,8 @@ class Settings(BaseSettings):
         if not self.DEBUG and self.SECRET_KEY == "change-me-in-production-to-a-random-string":
             raise ValueError(
                 "⚠️  CRITICAL: SECRET_KEY must be set via environment variable in production. "
-                "Generate a new key with: python -c \"import secrets; print(secrets.token_urlsafe(32))\""
+                "Generate a new key with: python -c \"import secrets; print(secrets.token_urlsafe(32))\"\n"
+                "Then add to Railway: Settings → Variables → SECRET_KEY = <your-key>"
             )
 
 
