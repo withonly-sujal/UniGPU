@@ -200,10 +200,13 @@ export default function ProviderDashboard() {
 
                 {/* Live System Metrics */}
                 <div className="section animate-in">
-                    <div className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                         Live System Metrics
-                        <span className={`ws-indicator ${wsConnected ? 'ws-connected' : 'ws-disconnected'}`}>
-                            {wsConnected ? '● Connected' : '○ Disconnected'}
+                        <span className={`ws-indicator ${wsConnected ? 'ws-connected' : 'ws-disconnected'}`} title="Backend connection">
+                            {wsConnected ? '● Backend' : '○ Backend'}
+                        </span>
+                        <span className={`ws-indicator ${liveMetrics ? 'ws-connected' : 'ws-disconnected'}`} title="GPU agent connection">
+                            {liveMetrics ? '● Agent' : '○ Agent'}
                         </span>
                     </div>
                     {liveMetrics ? (
@@ -271,9 +274,11 @@ export default function ProviderDashboard() {
                         </div>
                     ) : (
                         <div className="glass" style={{ padding: '30px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                            {wsConnected
-                                ? 'Waiting for agent metrics… Make sure the agent is running.'
-                                : 'WebSocket not connected. Metrics will appear once the agent is online.'}
+                            {!wsConnected
+                                ? 'WebSocket disconnected. Metrics will appear once the backend is online.'
+                                : gpus.length === 0
+                                ? 'Register a GPU to see live metrics.'
+                                : 'Waiting for agent metrics… Make sure the GPU agent is running and connected.'}
                         </div>
                     )}
                 </div>
